@@ -29,7 +29,7 @@ class Accounts {
         .select(this.#selectColumnsForView)
         .from('account_officer');
 
-      res.locals.dataAllAccount = sql;
+      res.locals.allDataAO = sql;
       next();
     }
     catch (error) {
@@ -42,9 +42,9 @@ class Accounts {
       const sql = await Knex(this.#conn)
         .select(this.#selectColumnsForView)
         .from('account_officer')
-        .where({ id_ao: req.body.id_ao });
+        .where({ id_ao: req.params.id_ao });
 
-      res.locals.dataAccount = sql;
+      res.locals.dataAO = sql;
       next();
     }
     catch (error) {

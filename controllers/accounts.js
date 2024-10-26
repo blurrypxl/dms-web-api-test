@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { checkSchema } from 'express-validator';
 // import { promisify } from 'node:util';
-// import jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import InputValidator from '../models/InputValidator.js';
 // import RoleAccounts from '../models/RoleAccounts.js';
 import Errors from '../models/Errors.js';
@@ -37,9 +37,19 @@ route.get(
     }
   }),
   error.inputValidation.bind(error),
-  async (req, res, next) => {
+  (req, res, next) => {
     try {
+      // Decoding JWT
+      const decoded = jwt.verify(req.cookies.auth, secretKey);
+      
+      // Comparing role user
+      if (decoded.role !== 'admin') {
+        const error = new Error('Account Officer is not authorized');
+        error.status = 401;
+        throw error;
+      }
 
+      next();
     }
     catch (error) {
       next(error);
@@ -49,32 +59,32 @@ route.get(
   (req, res) => {
     const page = req.query.page;
     const limit = req.query.limit;
-    const data = res.locals.dataAllAccount;
+    const data = res.locals.allDataAO;
     const pagination = new Pagination(data, page, limit);
     res.status(200).json(pagination.view());
   }
 );
 
-route.post(
-  '/find-by-id',
+route.get(
+  '/find-by-id/:id_ao',
   checkSchema({
     auth: {
       ...inputValidator.authSchema()
     },
-    id_account: {
+    id_ao: {
       ...inputValidator.idSchema(),
-      errorMessage: "ID Account is not valid"
+      errorMessage: "ID Account Officer is not valid"
     }
   }),
   error.inputValidation.bind(error),
-  async (req, res, next) => {
+  (req, res, next) => {
     try {
       // Decoding JWT
-      const decoded = verifyAsync(req.cookies.auth, secretKey);
+      const decoded = jwt.verify(req.cookies.auth, secretKey);
       
       // Comparing role user
-      if (decoded.role_name_account !== 'webmaster' || decoded.role_name_account !== 'admin') {
-        const error = new Error('Account is not authorized');
+      if (decoded.role !== 'admin') {
+        const error = new Error('Account Officer is not authorized');
         error.status = 401;
         throw error;
       }
@@ -87,7 +97,7 @@ route.post(
   },
   account.readByID.bind(account),
   (req, res) => {
-    res.status(200).json(res.locals.dataAccount);
+    res.status(200).json(res.locals.dataAO);
   }
 );
 

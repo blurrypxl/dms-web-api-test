@@ -46,12 +46,10 @@ class Auth {
 
       // Creating JWT
       const token = await this.#signAsync({
-        id_account: sql[0].id_account,
-        name_employee: sql[0].name_employee,
-        email_employee: sql[0].email_employee,
+        id_ao: sql[0].id_ao,
+        name_ao: sql[0].name_ao,
         username: sql[0].username,
-        role_name_account: sql[0].role_name_account,
-        is_online: sql[0].is_online
+        role: sql[0].role
       },
         this.#secretKey,
         { expiresIn: '2h' });
