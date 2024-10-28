@@ -13,7 +13,7 @@ class InputValidator {
   idSchema() {
     return {
       isString: { bail: true },
-      isLength: { options: { min: 8, max: 8 } },
+      isLength: { options: { min: 8, max: 12 } },
       isEmpty: false,
       trim: true
     };
@@ -65,7 +65,7 @@ class InputValidator {
         errorMessage: 'Nama Nasabah is not valid'
       },
       nik: {
-        ...this.regularIntSchema(),
+        ...this.regularSchema(),
         trim: true,
         isLength: { min: 16 },
         errorMessage: 'NIK is not valid'
@@ -107,7 +107,7 @@ class InputValidator {
         errorMessage: 'Provinsi is not valid'
       },
       kode_pos: {
-        ...this.regularIntSchema(),
+        ...this.regularSchema(),
         trim: true,
         errorMessage: 'Kode Pos is not valid'
       },
@@ -123,7 +123,7 @@ class InputValidator {
         errorMessage: 'Email is not valid'
       },
       no_hp: {
-        ...this.regularIntSchema(),
+        ...this.regularSchema(),
         trim: true,
         errorMessage: 'Nomor Handphone is not valid'
       },
@@ -131,26 +131,60 @@ class InputValidator {
         ...this.regularSchema(),
         trim: true,
         errorMessage: 'Nomor Rekening is not valid'
-      },
-      scan_ktp: {
+      }
+    };
+  }
+
+  bodyReqPekerjaanNasabah() {
+    return {
+      nama_instansi: {
         ...this.regularSchema(),
-        errorMessage: 'Scan KTP is not valid'
+        errorMessage: 'Nama Nasabah is not valid'
+      },
+      no_instansi: {
+        ...this.regularSchema(),
+        errorMessage: 'Nomor Instansi is not valid'
+      },
+      alamat_instansi: {
+        ...this.regularSchema(),
+        errorMessage: 'Nomor Instansi is not valid'
+      },
+      nip: {
+        ...this.regularSchema(),
+        trim: true,
+        errorMessage: 'NIP is not valid'
+      },
+      jabatan: {
+        ...this.regularSchema(),
+        errorMessage: 'Jabatan is not valid'
+      },
+      nama_atasan: {
+        ...this.regularSchema(),
+        errorMessage: 'Nama Atasan is not valid'
+      },
+      masa_kerja: {
+        ...this.regularSchema(),
+        errorMessage: 'Masa Kerja is not valid'
       }
     };
   }
 
   bodyReqPengajuanBiaya() {
     return {
-      id_cabang: {
-        ...this.idSchema(),
-        errorMessage: 'ID Cabang is not valid'
+      nama_cabang: {
+        ...this.regularSchema(),
+        errorMessage: 'Nama Cabang is not valid'
+      },
+      nama_capem: {
+        ...this.regularSchema(),
+        errorMessage: 'Nama Capem is not valid'
       },
       total_angsuran_pembiayaan: {
-        ...this.#queryIntSchema(),
+        ...this.regularSchema(),
         errorMessage: 'Total Angsuran is not valid'
       },
       jangka_waktu: {
-        ...this.#queryIntSchema(),
+        ...this.regularSchema(),
         errorMessage: 'Total Angsuran is not valid'
       }
     };
@@ -159,31 +193,23 @@ class InputValidator {
   bodyReqPembiayaan() {
     return {
       jumlah_penghasilan: {
-        ...this.regularIntSchema(),
+        ...this.regularSchema(),
         trim: true,
         errorMessage: 'Jumlah Penghasilan is not valid'
       },
       jumlah_penghasilan_lainnya: {
-        ...this.regularIntSchema(),
+        ...this.regularSchema(),
         trim: true,
         errorMessage: 'Jumlah Penghasilan Lainnya is not valid'
       },
       jangka_waktu: {
-        ...this.regularIntSchema(),
+        ...this.regularSchema(),
         trim: true,
         errorMessage: 'Jangka Waktu is not valid'
       },
       tujuan_pembiayaan: {
         ...this.regularSchema(),
         errorMessage: 'Tujuan Pembayaran is not valid'
-      },
-      scan_slip_gaji: {
-        ...this.regularSchema(),
-        errorMessage: 'Scan Slip Gaji is not valid'
-      },
-      scan_npwp: {
-        ...this.regularSchema(),
-        errorMessage: 'Scan NPWP is not valid'
       }
     };
   }

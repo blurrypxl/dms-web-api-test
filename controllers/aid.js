@@ -6,12 +6,32 @@ import Pagination from '../models/Pagination.js';
 import SearchData from '../models/SearchData.js';
 import Errors from '../models/Errors.js';
 import Aid from '../models/Aid.js';
+import Multer from 'multer';
+import StorageSettings from '../models/StorageSettings.js';
 
 const route = Router();
 const secretKey = process.env.NODE_ENV === 'production' ? process.env.PROD_SECRET_KEY : process.env.DEV_SECRET_KEY;
 const inputValidator = new InputValidator();
 const aid = new Aid();
 const error = new Errors();
+const storageSettings = new StorageSettings();
+const uploads = Multer({
+  storage: storageSettings.imageFiles(),
+  fileFilter: storageSettings.imageFileFilter.bind(storageSettings),
+  limits: { fileSize: 10 * 1024 * 1024 } // 2 mb
+})
+  .fields(
+    [
+      { name: 'scan_ktp', maxCount: 1 },
+      { name: 'scan_karpeg', maxCount: 1 },
+      { name: 'scan_taspen', maxCount: 1 },
+      { name: 'scan_sk80', maxCount: 1 },
+      { name: 'scan_sk100', maxCount: 1 },
+      { name: 'scan_sk_terakhir', maxCount: 1 },
+      { name: 'scan_npwp', maxCount: 1 },
+      { name: 'scan_slip_gaji', maxCount: 1 }
+    ]
+  );
 
 route.get(
   '/find-all',
@@ -42,15 +62,15 @@ route.get(
   },
   aid.read.bind(aid),
   (req, res, next) => {
-    // Pencarian Data Middleware
+    // Search Data Middleware
     const pemohon = req.query.pemohon;
-    const tanggalAwal = req.query.startDate;
-    const tanggalAkhir = req.query.endDate;
+    const tanggalAwal = req.query.start_date;
+    const tanggalAkhir = req.query.end_date;
     const cabang = req.query.cabang;
     const noKtp = req.query.noKtp;
     const data = res.locals.allPermohonanBiaya;
     const searchData = new SearchData(data, pemohon, tanggalAwal, tanggalAkhir, cabang, noKtp);
-    res.locals.resultData = searchData;
+    res.locals.resultData = searchData.viewSearch();
     next();
   },
   (req, res) => {
@@ -62,19 +82,34 @@ route.get(
   }
 );
 
+route.get(
+  '/find-by-id/:id_permohonan_biaya',
+  checkSchema({
+    auth: {
+      ...inputValidator.authSchema()
+    },
+    id_permohonan_biaya: {
+      ...inputValidator.idSchema(),
+      errorMessage: 'ID Permohonan Biaya is not valid'
+    }
+  }),
+  error.inputValidation.bind(error),
+  aid.readByID.bind(aid),
+  (req, res) => {
+    res.status(200).json(res.locals.permohonanBiaya);
+  }
+);
+
 route.post(
   '/add-new',
   checkSchema({
     auth: {
       ...inputValidator.authSchema()
-    },
-    ...inputValidator.bodyReqNasabahSchema(),
-    ...inputValidator.bodyReqPengajuanBiaya(),
-    ...inputValidator.bodyReqPembiayaan()
+    }
   }),
   error.inputValidation.bind(error),
   (req, res, next) => {
-    // Validating Account Officer
+    // Validating Account Officer    
     try {
       // Decoding JWT
       const decoded = jwt.verify(req.cookies.auth, secretKey);
@@ -86,15 +121,41 @@ route.post(
         throw error;
       }
 
+      res.locals.ao = decoded;
       next();
     }
     catch (error) {
       next(error);
     }
   },
+  (req, res, next) => {
+    // Upload Images Middleware
+    uploads(req, res, (err) => {
+      if (err instanceof Multer.MulterError) {
+        // A Multer error occurred when uploading.
+        const error = new Error(err);
+        next(error);
+      }
+      else if (err) {
+        // An unknown error occurred when uploading.
+        const error = new Error(err);
+        next(error);
+      }
+
+      next();
+    });
+  },
+  checkSchema({
+    ...inputValidator.bodyReqNasabahSchema(),
+    ...inputValidator.bodyReqPekerjaanNasabah(),
+    ...inputValidator.bodyReqPengajuanBiaya(),
+    ...inputValidator.bodyReqPembiayaan()
+  }),
+  error.inputValidationWithMulter.bind(error),
   aid.create.bind(aid),
   (req, res) => {
-    res.status.json({ message: res.locals.newPembiayaanData });
+    console.log(res.locals.ao);
+    res.status(200).json({ message: res.locals.newPembiayaanData });
   }
 );
 

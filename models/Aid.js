@@ -2,19 +2,18 @@ import ConnectionSettings from './ConnectionSettings.js';
 import Knex from 'knex';
 import gid from 'generate-unique-id';
 import timestamp from 'time-stamp';
-import Multer from 'multer';
+import path from 'path';
 
 class Aid {
   #conn;
   #selectColumnsDetailView
 
   constructor() {
-    this.#conn = new ConnectionSettings();
+    this.#conn = new ConnectionSettings().connection;
     this.#selectColumnsDetailView = [
       'permohonan_pembiayaan.id_permohonan_biaya',
       'permohonan_pembiayaan.jumlah_penghasilan',
       'permohonan_pembiayaan.jumlah_penghasilan_lainnya',
-      'permohonan_pembiayaan.jangka_waktu',
       'permohonan_pembiayaan.tujuan_pembiayaan',
       'permohonan_pembiayaan.jumlah_permohonan',
       'permohonan_pembiayaan.path_scan_slip_gaji',
@@ -52,7 +51,7 @@ class Aid {
       'detail_pengajuan_biaya.nama_capem',
       'detail_pengajuan_biaya.total_angsuran',
       'detail_pengajuan_biaya.jangka_waktu',
-      'account_officer.nama_ao',
+      'account_officer.name_ao',
       'permohonan_pembiayaan.create_date',
       'permohonan_pembiayaan.create_time'
     ];
@@ -95,7 +94,7 @@ class Aid {
         .join('account_officer', join => {
           join.on('permohonan_pembiayaan.id_ao', 'account_officer.id_ao');
         })
-        .where({ id_permohonan_pembiayaan: req.params.id_permohonan_pembiayaan });
+        .where({ id_permohonan_biaya: req.params.id_permohonan_biaya });
 
       res.locals.permohonanBiaya = sql;
       next();
@@ -108,15 +107,24 @@ class Aid {
   async create(req, res, next) {
     try {
       const gID = gid({ length: 12 });
+      const newIDNasabah = gid({ length: 12 });
+      const newIDPengajuanBiaya = gid({ length: 12 });
+      const newIDCabang = gid({ length: 12 });
+      const newIDCapem = gid({ length: 12 });
+      const gPermohonanBiayaID = timestamp('YYYYMMDD') + gid({ length: 4, useNumbers: true, useLetters: false });
       const gDate = timestamp('DD-MM-YYYY');
       const gTime = timestamp('HH:mm');
 
-      await Knex
+      console.log(req.body);
+      console.log(gPermohonanBiayaID);
+
+      await Knex(this.#conn)
         .transaction(async trx => {
-          const newIDNasabah = await Knex(this.#conn)
+          // Insert data nasabah baru
+          await Knex(this.#conn)
             .insert(
               {
-                id_nasabah: gID,
+                id_nasabah: newIDNasabah,
                 nama_nasabah: req.body.nama_nasabah,
                 nik: req.body.nik,
                 tempat_lahir: req.body.tempat_lahir,
@@ -133,48 +141,49 @@ class Aid {
                 email: req.body.email,
                 no_hp: req.body.no_hp,
                 no_rek: req.body.no_rek,
-                path_scan_ktp: res.locals.path_scan_ktp,
+                path_scan_ktp: req.files['scan_ktp'][0].destination + '/' + req.files['scan_ktp'][0].filename,
                 create_date: gDate,
                 create_time: gTime
-              },
-              'id_nasabah'
+              }
             )
             .into('nasabah')
             .transacting(trx);
 
-          const newIDPengajuanBiaya = await Knex(this.#conn)
-            .insert(
-              {
-                id_pengajuan_biaya: gID,
-                id_nasabah: newIDNasabah[0],
-                total_angsuran_pembiayaan: req.body.total_angsuran_pembiayaan,
-                jangka_waktu: req.body.jangka_waktu,
-                create_date: gDate,
-                create_time: gTime
-              },
-              'id_pengajuan_biaya'
-            )
-            .into('pengajuan_biaya')
-            .transacting(trx);
+          console.log(!req.files['scan_sk80']);
 
-          const newIDCabang = await Knex(this.#conn)
+          await Knex(this.#conn)
             .insert(
               {
-                id_cabang: gID,
-                nama_cabang: req.body.nama_cabang,
+                id_pekerjaan_nasabah: gID,
+                id_nasabah: newIDNasabah,
+                nama_instansi: req.body.nama_instansi,
+                no_instansi: req.body.no_instansi,
+                alamat_instansi: req.body.alamat_instansi,
+                nip: req.body.nip,
+                jabatan: req.body.jabatan,
+                nama_atasan: req.body.nama_atasan,
+                masa_kerja: req.body.masa_kerja,
+                path_scan_karpeg: !req.files['scan_karpeg'] ?
+                  null : req.files['scan_karpeg'][0].destination + '/' + req.files['scan_karpeg'][0].filename,
+                path_scan_taspen: !req.files['scan_taspen'] ?
+                  null : req.files['scan_taspen'][0].destination + '/' + req.files['scan_taspen'][0].filename,
+                path_scan_sk80: !req.files['scan_sk80'] ?
+                  null : req.files['scan_sk80'][0].destination + '/' + req.files['scan_sk80'][0].filename,
+                path_scan_sk100: !req.files['scan_sk100'] ?
+                  null : req.files['scan_sk100'][0].destination + '/' + req.files['scan_sk100'][0].filename,
+                path_scan_sk_terakhir: !req.files['scan_sk_terakhir'] ?
+                  null : req.files['scan_sk_terakhir'][0].destination + '/' + req.files['scan_sk_terakhir'][0].filename,
                 create_date: gDate,
                 create_time: gTime
-              },
-              'id_cabang'
+              }
             )
-            .into('cabang')
+            .into('pekerjaan_nasabah')
             .transacting(trx);
 
           await Knex(this.#conn)
             .insert(
               {
-                id_capem: gID,
-                id_cabang: newIDCabang[0],
+                id_capem: newIDCapem,
                 nama_capem: req.body.nama_capem,
                 create_date: gDate,
                 create_time: gTime
@@ -186,17 +195,43 @@ class Aid {
           await Knex(this.#conn)
             .insert(
               {
-                id_permohonan_pembiayaan: gID,
-                id_nasabah: newIDNasabah[0],
-                id_pengajuan_biaya: newIDPengajuanBiaya[0],
-                id_ao: res.locals.decoded.id_ao,
+                id_cabang: newIDCabang,
+                nama_cabang: req.body.nama_cabang,
+                id_capem: newIDCapem,
+                create_date: gDate,
+                create_time: gTime
+              }
+            )
+            .into('cabang')
+            .transacting(trx);
+
+          await Knex(this.#conn)
+            .insert(
+              {
+                id_pengajuan_biaya: newIDPengajuanBiaya,
+                id_cabang: newIDCabang,
+                total_angsuran_pembiayaan: req.body.total_angsuran_pembiayaan,
+                jangka_waktu: req.body.jangka_waktu,
+                create_date: gDate,
+                create_time: gTime
+              }
+            )
+            .into('pengajuan_biaya')
+            .transacting(trx);
+
+          await Knex(this.#conn)
+            .insert(
+              {
+                id_permohonan_biaya: gPermohonanBiayaID,
+                id_nasabah: newIDNasabah,
+                id_pengajuan_biaya: newIDPengajuanBiaya,
+                id_ao: res.locals.ao.id_ao,
                 jumlah_penghasilan: req.body.jumlah_penghasilan,
                 jumlah_penghasilan_lainnya: req.body.jumlah_penghasilan_lainnya,
                 jumlah_permohonan: req.body.jumlah_permohonan,
-                jangka_waktu: req.body.jangka_waktu,
                 tujuan_pembiayaan: req.body.tujuan_pembiayaan,
-                path_scan_slip_gaji: req.body.patch_scan_slip_gaji,
-                path_scan_npwp: req.body.path_scan_npwp,
+                path_scan_slip_gaji: req.files['scan_slip_gaji'][0].destination + '/' + req.files['scan_slip_gaji'][0].filename,
+                path_scan_npwp: req.files['scan_npwp'][0].destination + '/' + req.files['scan_npwp'][0].filename,
                 create_date: gDate,
                 create_time: gTime
               }
@@ -206,6 +241,8 @@ class Aid {
         });
 
       res.locals.newPembiayaanData = 'Permohonan Pembiayaan Data berhasil ditambah';
+      console.log(res.locals.newPembiayaanData);
+
       next();
     }
     catch (error) {

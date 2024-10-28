@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import accounts from './controllers/accounts.js';
 import auth from './controllers/auth.js';
+import aid from './controllers/aid.js';
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ const siteOrigin = process.env.NODE_ENV === 'production' ? process.env.CORS_ORIG
 app.use(cors({ origin: siteOrigin, optionsSuccessStatus: 200 }));
 app.use(helmet());
 app.use(cookieParser());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
@@ -25,6 +27,7 @@ app.use('/v1/api/test', (req, res) => {
 });
 app.use('/v1/api/auth', auth);
 app.use('/v1/api/accounts', accounts);
+app.use('/v1/api/aid', aid);
 
 // 404 Error
 app.use((req, res, next) => {

@@ -18,10 +18,10 @@ class SearchData {
 
     if (!this.#pemohon && !this.#startDate && !this.#endDate && !this.#cabang) {
       result = this.#data;
+      return result;
     }
-    else {
-      result = this.#data.filter(item => item.pemohon === this.#pemohon || item.startDate === this.#startDate || item.endDate === this.#endDate || item.cabang == this.#cabang);
-    }
+
+    result = this.#data.filter(item => item.nama === this.#pemohon && item.nama_cabang == this.#cabang || item.create_date === this.#startDate || item.create_date === this.#endDate);
 
     console.log(result);
 
